@@ -9,6 +9,11 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `verify_passport_id` now normalises uppercase `artifact_hash` and stored `id`
+  before comparison, matching the identity specification. Fixes #10.
+
 ---
 
 ## [0.1.0] — 2026-03-16
@@ -33,37 +38,4 @@ Initial public release.
 
 **Registry (`forkit.registry`)**
 - `LocalRegistry` — filesystem-backed store (JSON files + SQLite index).
-- `register_model`, `register_agent`, `get`, `delete`, `list`, `search`, `stats`, `verify_passport`.
-- SQLite index is always rebuildable from JSON via `rebuild_index()`.
-
-**SDK (`forkit.sdk`)**
-- `ForkitClient` — `client.models`, `client.agents`, `client.lineage`, `client.verify`.
-
-**CLI (`forkit.cli`)**
-- `forkit register model/agent <yaml>` — register from YAML file.
-- `forkit inspect <id>` — print full passport JSON.
-- `forkit list [--type model|agent] [--status draft|active|...]`
-- `forkit search <query>`
-- `forkit lineage <id>` — print ancestor / descendant tree.
-- `forkit verify <id>` — integrity verification.
-- `forkit stats` — registry summary.
-
-**Examples and tests**
-- `examples/use_cases.py` — standalone runnable demo for all 10 use cases.
-- `tests/test_use_cases.py` — pytest test suite (39 assertions, 10 test classes).
-- `tests/conftest.py` — shared fixtures.
-
-**Documentation**
-- `docs/identity-spec.md` — formal specification of the passport identity contract, hash-chain provenance model, serialisation guarantees, and regression anchors.
-
-### Design decisions
-
-- **Offline-first** — all identity and integrity operations work without a network connection or a running server.
-- **Hash-chain provenance** — `artifact_hash` (content fingerprint) + `parent_hash` (lineage link) form a verifiable chain without PKI or central authority.
-- **Dual backend, one interface** — dataclass backend has zero external dependencies; install `pydantic>=2` for JSON Schema generation and `.model_validate()` / `.model_dump()` support.
-- **SQLite as a rebuildable index** — JSON files are the source of truth; SQLite is a query convenience, not the store of record.
-
----
-
-[Unreleased]: https://github.com/Forkit-Dev-Core/Forkit_Dev/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Forkit-Dev-Core/Forkit_Dev/releases/tag/v0.1.0
+- `register_model`, `register_agent`, `get`, `delete`, `list`, `search`.

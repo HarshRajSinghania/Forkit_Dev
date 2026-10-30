@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from .hashing import HashEngine
-from .identity import compute_id
+from .identity import compute_id, validate_hash
 
 __all__ = [
     "verify_passport_id",
@@ -25,6 +25,8 @@ def verify_passport_id(passport_dict: dict[str, Any]) -> dict[str, Any]:
     Verify that a passport dict's stored `id` is consistent with its content.
 
     Recomputes the ID from: passport_type, name, version, creator, artifact_hash.
+    `artifact_hash` and the stored `id` are normalised to lowercase (uppercase
+    hex is accepted and silently normalised, matching the identity specification).
     Returns a result dict with keys:
       - valid       (bool)
       - stored_id   (str)
@@ -40,6 +42,13 @@ def verify_passport_id(passport_dict: dict[str, Any]) -> dict[str, Any]:
             "reason":     "missing_id",
         }
 
+    # Normalise stored id for comparison (accept uppercase hex)
+    try:
+        stored_id_norm = validate_hash(stored_id)
+    except ValueError:
+        # Invalid format will fail the subsequent match
+        stored_id_norm = stored_id
+
     creator = passport_dict.get("creator") or {}
     if not isinstance(creator, dict):
         # Handle CreatorInfo objects that were passed as objects
@@ -49,16 +58,25 @@ def verify_passport_id(passport_dict: dict[str, Any]) -> dict[str, Any]:
         creator_name = creator.get("name", "")
         creator_org  = creator.get("organization")
 
+    # Normalise artifact_hash before ID derivation (uppercase accepted)
+    artifact_hash = passport_dict.get("artifact_hash")
+    if artifact_hash is not None:
+        try:
+            artifact_hash = validate_hash(artifact_hash)
+        except ValueError:
+            # Invalid hash: leave as-is so derived ID will not match a valid one
+            pass
+
     derived_id = compute_id(
         passport_type = passport_dict.get("passport_type", ""),
         name          = passport_dict.get("name", ""),
         version       = passport_dict.get("version", ""),
         creator_name  = creator_name,
         creator_org   = creator_org,
-        artifact_hash = passport_dict.get("artifact_hash"),
+        artifact_hash = artifact_hash,
     )
 
-    match = derived_id == stored_id
+    match = derived_id == stored_id_norm
     return {
         "valid":      match,
         "stored_id":  stored_id,
